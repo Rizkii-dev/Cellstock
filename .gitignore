@@ -1,0 +1,20 @@
+# Secrets - never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# LaTeX build output (report sources stay, build artifacts do not)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.synctex.gz
