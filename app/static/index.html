@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CellStock</title>
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#667085; --ok:#12805c; --bad:#b42318; --line:#e4e7ec; --accent:#175cd3; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    p.sub { margin: 0 0 20px; color: var(--muted); }
+    input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; width: 100%; }
+    input:focus { outline: 2px solid var(--accent); }
+    #q { font-size: 1.1rem; padding: 14px 16px; }
+    .meta { margin: 8px 2px 16px; font-size: .85rem; color: var(--muted); }
+    .item { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+            display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; }
+    .name { font-weight: 600; }
+    .sub2 { color: var(--muted); font-size: .85rem; }
+    .right { text-align: right; }
+    .loc { font-weight: 600; color: var(--accent); }
+    .ok { color: var(--ok); font-weight: 600; } .bad { color: var(--bad); font-weight: 600; }
+    details { margin-top: 28px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+    summary { cursor: pointer; font-weight: 600; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    form .full { grid-column: 1 / -1; }
+    button { font: inherit; padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+    #msg { margin-top: 8px; font-size: .9rem; }
+    @media (max-width: 560px) { form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>CellStock</h1>
+  <p class="sub">Find any product, its price, stock and exact shelf location. Press <b>/</b> to focus search.</p>
+
+  <input id="q" type="search" placeholder="Search name, category or phone model..." autocomplete="off" autofocus>
+  <div class="meta" id="meta"></div>
+  <div id="results"></div>
+
+  <details>
+    <summary>Add product</summary>
+    <form id="addForm">
+      <input name="name" placeholder="Name *" required>
+      <input name="category" placeholder="Category">
+      <input name="compatible_models" placeholder="Compatible models" class="full">
+      <input name="price_idr" type="number" min="0" placeholder="Price (IDR) *" required>
+      <input name="quantity" type="number" min="0" placeholder="Quantity *" required>
+      <input name="location" placeholder="Location, e.g. Shelf B, Drawer 3 *" class="full" required>
+      <button class="full" type="submit">Save</button>
+    </form>
+    <div id="msg"></div>
+  </details>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+let timer;
+
+async function search() {
+  const q = $("#q").value.trim();
+  const res = await fetch("/api/products?q=" + encodeURIComponent(q));
+  const data = await res.json();
+  $("#meta").textContent = `${data.count} result(s) · cache: ${data.cache}`;
+  $("#results").replaceChildren(...data.items.map(render));
+}
+
+function render(p) {
+  const el = document.createElement("div");
+  el.className = "item";
+  const stock = p.in_stock
+    ? `<span class="ok">In stock: ${p.quantity}</span>`
+    : `<span class="bad">Out of stock</span>`;
+  el.innerHTML = `
+    <div><div class="name"></div><div class="sub2"></div></div>
+    <div class="right"><div class="loc"></div><div>${stock}</div></div>
+    <div class="sub2 price"></div>`;
+  el.querySelector(".name").textContent = p.name;
+  el.querySelector(".sub2").textContent = [p.category, p.compatible_models].filter(Boolean).join(" · ");
+  el.querySelector(".loc").textContent = p.location;
+  el.querySelector(".price").textContent = rupiah(p.price_idr);
+  return el;
+}
+
+$("#q").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(search, 150); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#q").focus(); }
+});
+
+$("#addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.price_idr = parseInt(f.price_idr, 10);
+  f.quantity = parseInt(f.quantity, 10);
+  const res = await fetch("/api/products", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f),
+  });
+  const body = await res.json();
+  $("#msg").textContent = res.status === 201 ? `Saved (HTTP 201): ${body.name}`
+    : `Error (HTTP ${res.status}): ${body.error}${body.details ? " - " + body.details.join(", ") : ""}`;
+  if (res.status === 201) { e.target.reset(); search(); }
+});
+
+search();
+</script>
+</body>
+</html>
