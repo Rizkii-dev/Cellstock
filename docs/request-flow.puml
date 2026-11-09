@@ -1,0 +1,38 @@
+@startuml request-flow
+title CellStock - Request flow (search and add product)
+skinparam shadowing false
+
+actor Browser
+participant "app\n(Flask :8000)" as App
+participant "cache\n(Redis :6379)" as Cache
+database "db\n(PostgreSQL :5432)" as DB
+
+== GET /api/products?q=iphone ==
+Browser -> App : HTTP GET (localhost:8000)
+App -> Cache : GET search:iphone
+alt cache hit
+  Cache --> App : JSON
+  App --> Browser : 200 OK (cache: hit)
+else cache miss
+  Cache --> App : nil
+  App -> DB : SELECT ... ILIKE ...
+  DB --> App : rows
+  App -> Cache : SETEX search:iphone 30s
+  App --> Browser : 200 OK (cache: miss)
+end
+
+== POST /api/products ==
+Browser -> App : HTTP POST (JSON)
+alt invalid body
+  App --> Browser : 400 Bad Request
+else duplicate name
+  App -> DB : INSERT
+  DB --> App : UniqueViolation
+  App --> Browser : 409 Conflict
+else valid
+  App -> DB : INSERT ... RETURNING
+  DB --> App : new row
+  App -> Cache : DEL search:*
+  App --> Browser : 201 Created (+ Location header)
+end
+@enduml

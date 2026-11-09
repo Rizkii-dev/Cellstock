@@ -1,0 +1,33 @@
+@startuml architecture
+title CellStock - Docker Compose Architecture (localhost)
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Browser\n(user)" as browser
+
+node "Host machine (localhost)" {
+  rectangle "Docker Engine" {
+
+    package "Network: cellstock-net (user-defined bridge, DNS by service name)" {
+      component "app\nFlask + Gunicorn\nimage: cellstock:1.0.0\ncontainer port 8000" as app
+      database "db\npostgres:16.4-alpine\ncontainer port 5432\n(healthcheck: pg_isready)" as db
+      component "cache\nredis:7.4-alpine\ncontainer port 6379\n(healthcheck: redis-cli ping)" as cache
+      component "adminer\nadminer:4.8.1\ncontainer port 8080\n[profile: tools]" as adminer
+    }
+
+    storage "Named volume: pgdata\n/var/lib/postgresql/data" as vol
+  }
+}
+
+browser --> app : "http://localhost:8000\n(published 8000:8000)"
+browser ..> adminer : "http://localhost:8080\n(published 8080:8080, optional)"
+app --> db : "SQL over TCP\nhost = db : 5432"
+app --> cache : "GET/SETEX\nhost = cache : 6379"
+adminer --> db : "host = db"
+db --> vol : "mounted"
+
+note bottom of db
+  No port published to the host.
+  Reachable only inside cellstock-net.
+end note
+@enduml
