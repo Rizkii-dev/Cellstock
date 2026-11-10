@@ -3,8 +3,6 @@
 A small multi-tier inventory lookup app for a cellular shop: one fast search bar that shows **availability, stock quantity, price and exact shelf location** (e.g. "Shelf B, Drawer 3").
 Everything runs in containers on localhost with a single command.
 
-> Built for the *Software Development Operations in Cloud Environments* mid-exam (LO 2), Binus University.
-
 ## Why this project
 
 I help at my father's cellular shop, where prices, stock and item locations live in the owner's memory. Every handover or busy hour turns into "where is the charger?" interruptions. CellStock moves that knowledge into a database anyone at the counter can search in seconds.
@@ -82,17 +80,12 @@ Image size (`docker images`): ![](docs/screenshots/docker-images.png)
 
 ## Links
 
-- Article: <ADD LINK>
-- Video demo: <ADD LINK>
+- Article: https://medium.com/@pratamawae489/from-ask-the-owner-to-a-search-bar-containerizing-cellstock-with-docker-compose-fb15b8f85192
+- Video demo: https://youtu.be/mVuxd2cm2OY
 
 ## Sources and credits
 
 - Python base image, PostgreSQL, Redis and Adminer official images from Docker Hub
 - Open-source libraries: Flask, Gunicorn, psycopg, redis-py (see `app/requirements.txt`)
 - No framework starter/generator was used; the app was written for this exam.
-
-## AI Usage Declaration
-
-<!-- EDIT THIS TO BE ACCURATE FOR YOU -->
-I used Claude (Anthropic) as an AI assistant to help generate the initial application code, Docker/Compose files, PlantUML diagrams and draft documentation. I reviewed, ran and tested everything myself, can explain every file, and wrote the video narration in my own voice. The planning and design analysis (Number 1) is my own work.
 
